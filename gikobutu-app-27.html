@@ -1,0 +1,2214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>技工物 売上管理</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="技工物管理">
+<meta name="theme-color" content="#0d1117">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --surface3: #2d333b;
+  --accent: #58d6c8;
+  --accent2: #f0a843;
+  --accent3: #7c86f7;
+  --danger: #f85149;
+  --success: #3fb950;
+  --text: #e6edf3;
+  --text-dim: #7d8590;
+  --border: #30363d;
+  --radius: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  overflow: hidden;
+}
+#appContent {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 16px;
+}
+/* HEADER */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: static;
+  z-index: 200;
+  flex-shrink: 0;
+}
+.header-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+.header-month {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.header-month:active { opacity: 0.7; }
+/* TOP TAB */
+.top-tab {
+  flex: 1;
+  text-align: center;
+  padding: 10px 4px;
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.top-tab.active {
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+}
+/* BOTTOM NAV (legacy - unused) */
+.bottom-nav {
+  position: static;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-shrink: 0;
+  z-index: 200;
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+}
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 8px 0;
+  min-height: 56px;
+}
+.nav-item.active { color: var(--accent); }
+.nav-item svg { width: 22px; height: 22px; }
+/* PAGES */
+.page { display: none; padding: 16px; }
+.page.active { display: block; }
+/* CARDS */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+/* SUMMARY */
+.summary-top {
+  background: linear-gradient(135deg, #0f2744 0%, #0d1a2e 100%);
+  border: 1px solid #1e3a5f;
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 12px;
+}
+.summary-main-label {
+  font-size: 11px;
+  color: #5a8fc0;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.summary-main-amount {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 34px;
+  font-weight: 500;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 16px;
+}
+.summary-row {
+  display: flex;
+  gap: 12px;
+}
+.summary-sub {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 10px;
+}
+.summary-sub-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.summary-sub-value {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 18px;
+  font-weight: 500;
+}
+/* PROGRESS BAR */
+.progress-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.progress-pct {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  font-size: 16px;
+}
+.progress-bar-bg {
+  height: 10px;
+  background: var(--surface2);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+  background: linear-gradient(90deg, var(--accent), var(--accent3));
+}
+.progress-bar-fill.over { background: linear-gradient(90deg, var(--accent2), var(--danger)); }
+/* BUTTONS */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  -webkit-appearance: none;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: #0d2b28; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-danger { background: rgba(248,81,73,0.15); color: var(--danger); border: 1px solid rgba(248,81,73,0.3); }
+.btn-full { width: 100%; }
+.btn-sm { padding: 8px 14px; font-size: 12px; border-radius: 8px; }
+/* FORM */
+.form-group { margin-bottom: 14px; }
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+}
+.form-input, .form-select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+  font-size: 14px;
+  -webkit-appearance: none;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-input:focus, .form-select:focus { border-color: var(--accent); }
+.form-row { display: flex; gap: 10px; }
+.form-row .form-group { flex: 1; }
+/* ENTRIES LIST */
+.entry-item {
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.entry-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.entry-info { flex: 1; min-width: 0; }
+.entry-name {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.entry-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.entry-amount {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent2);
+  flex-shrink: 0;
+}
+.entry-del {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+}
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px 40px;
+  width: 100%;
+  max-height: 92vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.modal-overlay.open .modal-box { transform: translateY(0); }
+.modal-handle {
+  width: 40px; height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+.modal-title {
+  font-size: 16px;
+  font-weight: 900;
+  margin-bottom: 20px;
+}
+/* TECH LIST */
+.tech-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.tech-name { flex: 1; font-size: 14px; font-weight: 500; }
+.tech-price {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  color: var(--accent2);
+}
+/* CHART SECTION */
+.chart-wrap {
+  position: relative;
+  height: 220px;
+  margin-top: 8px;
+}
+/* CLINIC LIST */
+.clinic-badge {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 12px;
+  margin: 4px;
+  gap: 8px;
+}
+.clinic-badge button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+}
+/* SECTION TITLE */
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  margin-top: 20px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.section-title:first-child { margin-top: 0; }
+/* EMPTY */
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+/* CHIP */
+.chip {
+  display: inline-block;
+  background: rgba(88,214,200,0.15);
+  color: var(--accent);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+/* MONTH NAV */
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.month-nav button {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  width: 36px; height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+}
+.month-nav-label {
+  flex: 1;
+  text-align: center;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 15px;
+  font-weight: 500;
+}
+/* INPUT NUMBER STEPPER */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.stepper button {
+  width: 44px; height: 44px;
+  background: var(--surface3);
+  border: none;
+  color: var(--text);
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.stepper button:active { background: var(--border); }
+.stepper input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 18px;
+  font-weight: 500;
+  text-align: center;
+  width: 0;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+}
+/* ADD ENTRY FLOATING */
+.fab {
+  position: fixed;
+  bottom: 76px;
+  right: 16px;
+  width: 56px; height: 56px;
+  background: var(--accent);
+  border-radius: 50%;
+  border: none;
+  color: #0d2b28;
+  font-size: 28px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(88,214,200,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 150;
+  transition: transform 0.15s;
+}
+.fab:active { transform: scale(0.93); }
+/* SETTINGS ITEM */
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings-item:last-child { border-bottom: none; }
+.settings-label { font-size: 14px; font-weight: 500; }
+.settings-value { font-family: 'Courier New', Courier, monospace; font-size: 13px; color: var(--accent2); }
+/* TOGGLE */
+.toggle-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+}
+.toggle-btn.active {
+  background: rgba(88,214,200,0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+/* COLOR DOTS for clinics */
+.clinic-colors { --c0:#58d6c8;--c1:#f0a843;--c2:#7c86f7;--c3:#3fb950;--c4:#f85149;--c5:#e879f9;--c6:#fb923c;--c7:#34d399; }
+/* SEARCH */
+.search-wrap {
+  position: relative;
+  margin-bottom: 10px;
+}
+.search-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 14px 11px 38px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+}
+.search-input:focus { border-color: var(--accent); }
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 16px;
+  pointer-events: none;
+}
+.filter-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 10px;
+  scrollbar-width: none;
+}
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-chip {
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.filter-chip.active {
+  background: rgba(88,214,200,0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.search-result-count {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+/* TECH LINE */
+.tech-line {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+  position: relative;
+}
+.tech-line-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.tech-line-del {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.tech-line-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tech-line-stepper button {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.tech-line-stepper input {
+  width: 44px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+  height: 30px;
+  font-family: inherit;
+}
+.tech-line-subtotal {
+  font-size: 12px;
+  color: var(--accent);
+  text-align: right;
+  font-weight: bold;
+}
+/* TOOTH CHART */
+.tooth-btn {
+  aspect-ratio: 1;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-size: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  transition: all 0.15s;
+  padding: 0;
+  min-width: 0;
+}
+.tooth-btn.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0d2b28;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">🦷 技工物管理</div>
+  <div class="header-month" id="headerMonth">
+    <span id="headerMonthText">---</span>
+  </div>
+</div>
+
+<!-- TOP TAB BAR -->
+<div style="display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0">
+  <div id="tab-home" class="top-tab active" onclick="switchPage('home',this)">🏠 ホーム</div>
+  <div id="tab-graph" class="top-tab" onclick="switchPage('graph',this)">📊 グラフ</div>
+  <div id="tab-settings" class="top-tab" onclick="switchPage('settings',this)">⚙️ 設定</div>
+</div>
+
+<!-- PAGES -->
+<div id="appContent">
+<div id="pageHome" class="page active">
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <div class="month-nav-label" id="monthLabel">---</div>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+
+  <!-- 検索バー -->
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" class="search-input" id="searchInput" placeholder="患者名・医院名・技工物で検索..." oninput="renderHome()">
+  </div>
+
+  <!-- フィルターチップ -->
+  <div class="filter-row" id="filterRow"></div>
+
+  <!-- 日付絞り込み -->
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <div style="flex:1">
+      <input type="date" class="form-input" id="filterDateFrom" placeholder="開始日" oninput="renderHome()" style="font-size:12px;padding:8px 10px">
+    </div>
+    <div style="color:var(--text-dim);display:flex;align-items:center">〜</div>
+    <div style="flex:1">
+      <input type="date" class="form-input" id="filterDateTo" placeholder="終了日" oninput="renderHome()" style="font-size:12px;padding:8px 10px">
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="clearFilters()">クリア</button>
+  </div>
+
+  <div class="summary-top" id="summaryTop">
+    <div class="summary-main-label">今月の売上</div>
+    <div class="summary-main-amount" id="summaryAmount">¥0</div>
+    <div class="summary-row">
+      <div class="summary-sub">
+        <div class="summary-sub-label">件数</div>
+        <div class="summary-sub-value" id="summaryCount" style="color:var(--accent3)">0件</div>
+      </div>
+      <div class="summary-sub">
+        <div class="summary-sub-label">医院数</div>
+        <div class="summary-sub-value" id="summaryClinicCount" style="color:var(--accent2)">0院</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>給料達成率</span>
+      <span class="progress-pct" id="progressPct" style="color:var(--accent)">0%</span>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+    </div>
+    <div style="font-size:11px;color:var(--text-dim);margin-top:8px;text-align:right">
+      目標: <span id="targetLabel" style="font-family:'DM Mono',monospace">¥0</span>
+    </div>
+  </div>
+
+  <div class="section-title">今月の記録</div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+    <button class="btn btn-secondary btn-sm" onclick="toggleContinuousMode()">⚡ 連続入力</button>
+  </div>
+  <div id="searchResultCount" class="search-result-count"></div>
+  <div id="entriesList"></div>
+  <div id="entriesEmpty" class="empty" style="display:none">
+    <div class="empty-icon">📋</div>
+    <div>まだ記録がありません</div>
+    <div style="margin-top:8px;font-size:12px">右下の＋から追加してください</div>
+  </div>
+</div>
+
+<div id="pageGraph" class="page">
+  <div class="section-title">給料達成率の推移</div>
+  <div class="card">
+    <div class="chart-wrap"><canvas id="chartAchieve"></canvas></div>
+  </div>
+
+  <div class="section-title">日別売上（今月）</div>
+  <div class="card">
+    <div class="chart-wrap"><canvas id="chartDaily"></canvas></div>
+  </div>
+
+  <div class="section-title">医院別 月次売上</div>
+  <div class="card">
+    <div class="chart-wrap"><canvas id="chartClinic"></canvas></div>
+  </div>
+
+  <div class="section-title">医院別レポート（今月）</div>
+  <div id="clinicReport"></div>
+
+  <div class="section-title">技工物別 製作数（今月）</div>
+  <div class="card">
+    <div class="chart-wrap" style="height:280px"><canvas id="chartTech"></canvas></div>
+  </div>
+
+  <div class="section-title">年間サマリー</div>
+  <div id="yearlySummary"></div>
+</div>
+
+<div id="pageSettings" class="page">
+  <div class="section-title">目標・給料設定</div>
+  <div class="card">
+    <div class="settings-item">
+      <div class="settings-label">月の目標売上</div>
+      <div class="settings-value" id="targetSalesDisplay">未設定</div>
+    </div>
+    <div class="settings-item">
+      <div class="settings-label">給料換算率（%）</div>
+      <div class="settings-value" id="salaryRateDisplay">未設定</div>
+    </div>
+    <div class="settings-item">
+      <div class="settings-label">目標給料（自動計算）</div>
+      <div class="settings-value" id="salaryDisplay">¥0</div>
+    </div>
+    <button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="openSalaryModal()">変更する</button>
+  </div>
+
+  <div class="section-title">医院の管理</div>
+  <div class="card">
+    <div id="clinicList" style="flex-wrap:wrap;display:flex;min-height:40px"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <input type="text" class="form-input" id="newClinicInput" placeholder="医院名を入力" style="flex:1">
+      <button class="btn btn-primary" onclick="addClinic()">追加</button>
+    </div>
+  </div>
+
+  <div class="section-title">技工物と単価</div>
+  <div class="card">
+    <div id="techList"></div>
+    <button class="btn btn-secondary btn-full" style="margin-top:12px" onclick="openAddTechModal()">
+      ＋ 技工物を追加
+    </button>
+  </div>
+
+  <div class="section-title">データ</div>
+  <div class="card">
+    <button class="btn btn-danger btn-full" onclick="clearAllData()">すべてのデータをリセット</button>
+  </div>
+
+  <div class="section-title">バックアップ・復元</div>
+  <div class="card">
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px">データをファイルに保存したり、以前のバックアップから復元できます。定期的にバックアップすることをおすすめします。</div>
+    <button class="btn btn-secondary btn-full" style="margin-bottom:10px" onclick="exportBackup()">
+      📥 バックアップを保存する
+    </button>
+    <label class="btn btn-secondary btn-full" style="cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+      📤 バックアップから復元する
+      <input type="file" accept=".json" style="display:none" onchange="importBackup(this)">
+    </label>
+    <div id="backupStatus" style="font-size:12px;color:var(--accent);margin-top:10px;text-align:center"></div>
+  </div>
+
+</div><!-- /#pageSettings -->
+
+</div><!-- /#appContent -->
+
+<!-- FAB -->
+<button class="fab" id="fabBtn" onclick="openAddEntryModal()">＋</button>
+<div class="modal-overlay" id="modalEntry">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">記録を追加</div>
+    <div class="form-group">
+      <label class="form-label">日付</label>
+      <input type="date" class="form-input" id="entryDate">
+    </div>
+    <div class="form-group">
+      <label class="form-label">医院名</label>
+      <select class="form-select" id="entryClinic"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">患者名</label>
+      <input type="text" class="form-input" id="entryPatient" placeholder="例：山田 太郎">
+    </div>
+    <!-- 歯式選択 -->
+    <div class="form-group">
+      <label class="form-label">歯式 <span style="font-size:11px;color:var(--text-dim);font-weight:normal">（タップで選択・複数可）</span></label>
+      <div id="toothChart" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-bottom:6px">
+          <div style="font-size:10px;color:var(--text-dim);text-align:center">上右</div>
+          <div style="font-size:10px;color:var(--text-dim);text-align:center">上左</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(16,1fr);gap:2px;margin-bottom:8px" id="upperTeeth"></div>
+        <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+        <div style="display:grid;grid-template-columns:repeat(16,1fr);gap:2px;margin-top:8px" id="lowerTeeth"></div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-top:6px">
+          <div style="font-size:10px;color:var(--text-dim);text-align:center">下右</div>
+          <div style="font-size:10px;color:var(--text-dim);text-align:center">下左</div>
+        </div>
+        <div id="selectedTeethDisplay" style="margin-top:8px;font-size:12px;color:var(--accent);min-height:18px;text-align:center"></div>
+      </div>
+    </div>
+    <!-- 技工物リスト（複数） -->
+    <div class="form-group">
+      <label class="form-label">技工物</label>
+      <div id="techLinesList"></div>
+      <button class="btn btn-secondary" style="width:100%;margin-top:8px;font-size:13px" onclick="addTechLine()">＋ 技工物を追加</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modalEntry')">キャンセル</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveEntry()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDIT ENTRY -->
+<div class="modal-overlay" id="modalEditEntry">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">記録を編集</div>
+    <div class="form-group">
+      <label class="form-label">日付</label>
+      <input type="date" class="form-input" id="editEntryDate">
+    </div>
+    <div class="form-group">
+      <label class="form-label">医院名</label>
+      <select class="form-select" id="editEntryClinic"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">患者名</label>
+      <input type="text" class="form-input" id="editEntryPatient">
+    </div>
+    <div class="form-group">
+      <label class="form-label">技工物</label>
+      <select class="form-select" id="editEntryTech" onchange="updateEditPrice()"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">数量</label>
+      <div class="stepper">
+        <button type="button" onclick="stepEditQty(-1)">−</button>
+        <input type="number" id="editEntryQty" value="1" min="1" max="99">
+        <button type="button" onclick="stepEditQty(1)">＋</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">単価</label>
+      <input type="number" class="form-input" id="editEntryPrice" style="font-family:monospace">
+    </div>
+    <div class="form-group">
+      <label class="form-label">歯式 <span style="font-size:11px;color:var(--text-dim);font-weight:normal">（タップで変更可）</span></label>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px">
+        <div style="display:grid;grid-template-columns:repeat(16,1fr);gap:2px;margin-bottom:8px" id="editUpperTeeth"></div>
+        <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+        <div style="display:grid;grid-template-columns:repeat(16,1fr);gap:2px;margin-top:8px" id="editLowerTeeth"></div>
+        <div id="editSelectedTeethDisplay" style="margin-top:8px;font-size:12px;color:var(--text-dim);text-align:center">歯式未選択</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modalEditEntry')">キャンセル</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveEditEntry()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ADD TECH -->
+<div class="modal-overlay" id="modalAddTech">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">技工物を追加</div>
+    <div class="form-group">
+      <label class="form-label">技工物名</label>
+      <input type="text" class="form-input" id="newTechName" placeholder="例：メタルクラウン">
+    </div>
+    <div class="form-group">
+      <label class="form-label">標準単価（円）</label>
+      <input type="number" class="form-input" id="newTechPrice" placeholder="例：5000" style="font-family:'DM Mono',monospace">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modalAddTech')">キャンセル</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveTech()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SALARY -->
+<div class="modal-overlay" id="modalSalary">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">目標・給料設定</div>
+    <div class="form-group">
+      <label class="form-label">月の目標売上（円）</label>
+      <input type="number" class="form-input" id="targetSalesInput" placeholder="例：1000000" style="font-family:'DM Mono',monospace" oninput="updateSalaryPreview()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">給料換算率（%）</label>
+      <input type="number" class="form-input" id="salaryRateInput" placeholder="例：25" min="1" max="100" style="font-family:'DM Mono',monospace" oninput="updateSalaryPreview()">
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">売上の何%が給料になるか入力してください</div>
+    </div>
+    <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px">目標給料（自動計算）</div>
+      <div id="salaryPreview" style="font-family:monospace;font-size:20px;color:var(--accent);font-weight:bold">¥0</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modalSalary')">キャンセル</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveSalary()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== STATE ==========
+let state = {
+  entries: [],       // {id, date, clinic, patient, tech, qty, price}
+  techs: [],         // {id, name, price}
+  clinics: [],       // string[]
+  salary: 0,
+  targetSales: 0,    // 月の目標売上
+  salaryRate: 0,     // 給料換算率(%)
+  currentYear: new Date().getFullYear(),
+  currentMonth: new Date().getMonth() + 1
+};
+
+const CLINIC_COLORS = ['#58d6c8','#f0a843','#7c86f7','#3fb950','#f85149','#e879f9','#fb923c','#34d399'];
+
+// ========== STORAGE ==========
+function save() { localStorage.setItem('gikobutu_v2', JSON.stringify(state)); }
+function load() {
+  const d = localStorage.getItem('gikobutu_v2');
+  if (d) state = JSON.parse(d);
+}
+
+// ========== INIT ==========
+function init() {
+  load();
+  if (!state.techs) state.techs = [];
+  if (!state.entries) state.entries = [];
+  if (!state.clinics) state.clinics = [];
+  if (!state.salary) state.salary = 0;
+  if (!state.targetSales) state.targetSales = 0;
+  if (!state.salaryRate) state.salaryRate = 0;
+  if (!state.currentYear) state.currentYear = new Date().getFullYear();
+  if (!state.currentMonth) state.currentMonth = new Date().getMonth() + 1;
+  renderAll();
+}
+
+// ========== NAVIGATION ==========
+function switchPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.top-tab').forEach(n => n.classList.remove('active'));
+  document.getElementById('page' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('fabBtn').style.display = name === 'home' ? 'flex' : 'none';
+  if (name === 'graph') renderCharts();
+  if (name === 'settings') renderSettings();
+}
+
+// ========== MONTH NAV ==========
+function changeMonth(delta) {
+  state.currentMonth += delta;
+  if (state.currentMonth > 12) { state.currentMonth = 1; state.currentYear++; }
+  if (state.currentMonth < 1) { state.currentMonth = 12; state.currentYear--; }
+  save();
+  renderHome();
+}
+
+// ========== MONTH KEY ==========
+function monthKey(y, m) { return `${y}-${String(m).padStart(2,'0')}`; }
+function currentKey() { return monthKey(state.currentYear, state.currentMonth); }
+
+// ========== FILTERED ENTRIES ==========
+function currentEntries() {
+  const key = currentKey();
+  return state.entries.filter(e => e.date && e.date.startsWith(key));
+}
+
+// ========== SEARCH & FILTER ==========
+let activeClinicFilter = null;
+let activeTechFilter = null;
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterDateFrom').value = '';
+  document.getElementById('filterDateTo').value = '';
+  activeClinicFilter = null;
+  activeTechFilter = null;
+  renderHome();
+}
+
+function toggleClinicFilter(clinic) {
+  activeClinicFilter = activeClinicFilter === clinic ? null : clinic;
+  renderHome();
+}
+
+function toggleTechFilter(tech) {
+  activeTechFilter = activeTechFilter === tech ? null : tech;
+  renderHome();
+}
+
+function getFilteredEntries() {
+  let entries = currentEntries();
+  const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+  const dateFrom = document.getElementById('filterDateFrom')?.value;
+  const dateTo = document.getElementById('filterDateTo')?.value;
+
+  if (q) {
+    entries = entries.filter(e =>
+      e.patient?.toLowerCase().includes(q) ||
+      e.clinic?.toLowerCase().includes(q) ||
+      e.tech?.toLowerCase().includes(q)
+    );
+  }
+  if (activeClinicFilter) {
+    entries = entries.filter(e => e.clinic === activeClinicFilter);
+  }
+  if (activeTechFilter) {
+    entries = entries.filter(e => e.tech === activeTechFilter);
+  }
+  if (dateFrom) {
+    entries = entries.filter(e => e.date >= dateFrom);
+  }
+  if (dateTo) {
+    entries = entries.filter(e => e.date <= dateTo);
+  }
+  return entries;
+}
+
+// ========== RENDER HOME ==========
+function renderHome() {
+  const ym = `${state.currentYear}年${state.currentMonth}月`;
+  document.getElementById('monthLabel').textContent = ym;
+  document.getElementById('headerMonth').querySelector('span').textContent = ym;
+
+  const allEntries = currentEntries();
+  const filteredEntries = getFilteredEntries();
+
+  const total = allEntries.reduce((s, e) => s + (e.price * e.qty), 0);
+  const clinics = [...new Set(allEntries.map(e => e.clinic))].filter(Boolean);
+
+  document.getElementById('summaryAmount').textContent = '¥' + total.toLocaleString();
+  document.getElementById('summaryCount').textContent = allEntries.length + '件';
+  document.getElementById('summaryClinicCount').textContent = clinics.length + '院';
+
+  const pct = state.targetSales > 0 ? Math.round(total / state.targetSales * 100) : (state.salary > 0 ? Math.round(total / state.salary * 100) : 0);
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressPct').style.color = pct >= 100 ? 'var(--accent2)' : 'var(--accent)';
+  const bar = document.getElementById('progressBar');
+  bar.style.width = Math.min(pct, 100) + '%';
+  bar.className = 'progress-bar-fill' + (pct >= 100 ? ' over' : '');
+  document.getElementById('targetLabel').textContent = '¥' + (state.salary || 0).toLocaleString();
+
+  // フィルターチップ
+  const filterRow = document.getElementById('filterRow');
+  const clinicChips = state.clinics.map((c, ci) => {
+    const col = CLINIC_COLORS[ci % CLINIC_COLORS.length];
+    const active = activeClinicFilter === c;
+    return `<button class="filter-chip ${active ? 'active' : ''}" onclick="toggleClinicFilter('${c}')">🏥 ${c}</button>`;
+  });
+  const techChips = [...new Set(allEntries.map(e => e.tech))].filter(Boolean).map(t => {
+    const active = activeTechFilter === t;
+    return `<button class="filter-chip ${active ? 'active' : ''}" onclick="toggleTechFilter('${t.replace(/'/g, "\\'")}')">🦷 ${t}</button>`;
+  });
+  filterRow.innerHTML = clinicChips.concat(techChips).join('');
+
+  // 検索結果カウント
+  const countEl = document.getElementById('searchResultCount');
+  const isFiltering = document.getElementById('searchInput')?.value || activeClinicFilter || activeTechFilter ||
+    document.getElementById('filterDateFrom')?.value || document.getElementById('filterDateTo')?.value;
+  countEl.textContent = isFiltering ? `${filteredEntries.length}件 / ${allEntries.length}件中` : '';
+
+  const list = document.getElementById('entriesList');
+  const empty = document.getElementById('entriesEmpty');
+  if (filteredEntries.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    empty.innerHTML = isFiltering
+      ? '<div class="empty-icon">🔍</div><div>該当する記録がありません</div>'
+      : '<div class="empty-icon">📋</div><div>まだ記録がありません</div><div style="margin-top:8px;font-size:12px">右下の＋から追加してください</div>';
+  } else {
+    empty.style.display = 'none';
+    const sorted = [...filteredEntries].sort((a, b) => b.date.localeCompare(a.date) || a.patient.localeCompare(b.patient));
+
+    // 患者+日付+医院でグループ化
+    const groups = [];
+    const keyMap = {};
+    sorted.forEach(e => {
+      const key = `${e.date}__${e.clinic}__${e.patient}`;
+      if (!keyMap[key]) {
+        keyMap[key] = { date: e.date, clinic: e.clinic, patient: e.patient, items: [], ids: [] };
+        groups.push(keyMap[key]);
+      }
+      keyMap[key].items.push(e);
+      keyMap[key].ids.push(e.id);
+    });
+
+    list.innerHTML = groups.map(g => {
+      const ci = state.clinics.indexOf(g.clinic);
+      const color = CLINIC_COLORS[ci % CLINIC_COLORS.length] || 'var(--accent)';
+      const total = g.items.reduce((s, e) => s + e.price * e.qty, 0);
+      const techLines = g.items.map(e =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+          <span style="font-size:12px;color:var(--text-dim)">${e.tech} × ${e.qty}${e.teeth ? ' <span style="color:var(--accent3)">[' + e.teeth + ']</span>' : ''}</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px;color:var(--accent2);font-family:monospace">¥${(e.price * e.qty).toLocaleString()}</span>
+            <button onclick="openEditEntry('${e.id}')" style="background:none;border:none;color:var(--text-dim);font-size:12px;cursor:pointer;padding:0 2px">✏️</button>
+          </div>
+        </div>`
+      ).join('');
+      const delIds = g.ids.map(id => `'${id}'`).join(',');
+      const encodedPatient = encodeURIComponent(g.patient);
+      return `<div class="entry-item" style="flex-direction:column;align-items:stretch;gap:0">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="entry-dot" style="background:${color};flex-shrink:0"></div>
+          <div class="entry-info" style="flex:1;cursor:pointer" onclick="showPatientDetail('${encodedPatient}','${g.date}','${g.clinic}')">
+            <div class="entry-name" style="color:var(--text)">${g.patient} <span style="font-size:11px;color:var(--accent);margin-left:4px">▶</span></div>
+            <div class="entry-sub">${g.clinic} · ${g.date.slice(5).replace('-','/')}</div>
+          </div>
+          <div class="entry-amount">¥${total.toLocaleString()}</div>
+          <button class="entry-del" onclick="deleteEntries([${delIds}])">🗑</button>
+        </div>
+        <div style="margin-left:18px;margin-top:4px">${techLines}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ========== ADD ENTRY MODAL ==========
+function openAddEntryModal() {
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('entryDate').value = today;
+  document.getElementById('entryPatient').value = '';
+
+  const cs = document.getElementById('entryClinic');
+  cs.innerHTML = state.clinics.length === 0
+    ? '<option value="">先に設定から医院を追加してください</option>'
+    : state.clinics.map(c => `<option value="${c}">${c}</option>`).join('');
+
+  // 技工物リストをリセット
+  document.getElementById('techLinesList').innerHTML = '';
+
+  // 歯式リセット・描画
+  initToothChart();
+
+  openModal('modalEntry');
+
+  // 少し遅らせて選択ポップアップを表示
+  setTimeout(() => {
+    if (state.techs.length > 0) showTechPicker();
+  }, 300);
+}
+
+// ========== TOOTH CHART ==========
+let selectedTeeth = new Set();
+
+function initToothChart() {
+  selectedTeeth = new Set();
+
+  // 上顎：右8〜1、左1〜8
+  const upperRight = [8,7,6,5,4,3,2,1];
+  const upperLeft  = [1,2,3,4,5,6,7,8];
+  // 下顎：右8〜1、左1〜8
+  const lowerRight = [8,7,6,5,4,3,2,1];
+  const lowerLeft  = [1,2,3,4,5,6,7,8];
+
+  document.getElementById('upperTeeth').innerHTML =
+    upperRight.map(n => toothBtn(`上右${n}`, `UR${n}`)).join('') +
+    upperLeft.map(n  => toothBtn(`上左${n}`, `UL${n}`)).join('');
+
+  document.getElementById('lowerTeeth').innerHTML =
+    lowerRight.map(n => toothBtn(`下右${n}`, `LR${n}`)).join('') +
+    lowerLeft.map(n  => toothBtn(`下左${n}`, `LL${n}`)).join('');
+
+  updateSelectedTeethDisplay();
+}
+
+function toothBtn(label, id) {
+  return `<button type="button" class="tooth-btn" id="tooth_${id}" onclick="toggleTooth('${id}')">${label.slice(-1)}</button>`;
+}
+
+function toggleTooth(id) {
+  if (selectedTeeth.has(id)) {
+    selectedTeeth.delete(id);
+    document.getElementById('tooth_' + id).classList.remove('selected');
+  } else {
+    selectedTeeth.add(id);
+    document.getElementById('tooth_' + id).classList.add('selected');
+  }
+  updateSelectedTeethDisplay();
+}
+
+function updateSelectedTeethDisplay() {
+  const el = document.getElementById('selectedTeethDisplay');
+  if (selectedTeeth.size === 0) {
+    el.textContent = '歯式未選択';
+    el.style.color = 'var(--text-dim)';
+  } else {
+    const sorted = sortTeeth([...selectedTeeth]);
+    el.textContent = '選択中: ' + sorted.map(formatTooth).join('・');
+    el.style.color = 'var(--accent)';
+  }
+}
+
+function sortTeeth(teeth) {
+  const order = {'UR':0,'UL':1,'LL':2,'LR':3};
+  return teeth.sort((a, b) => {
+    const qa = a.slice(0,2), qb = b.slice(0,2);
+    const na = parseInt(a.slice(2)), nb = parseInt(b.slice(2));
+    if (qa !== qb) return order[qa] - order[qb];
+    return qa === 'UR' || qa === 'LR' ? nb - na : na - nb;
+  });
+}
+
+function formatTooth(id) {
+  const quadMap = {'UR':'上右','UL':'上左','LL':'下左','LR':'下右'};
+  return quadMap[id.slice(0,2)] + id.slice(2);
+}
+
+function getSelectedTeethStr() {
+  if (selectedTeeth.size === 0) return '';
+  return sortTeeth([...selectedTeeth]).map(formatTooth).join('・');
+}
+
+function updateEntryPrice() {
+  const sel = document.getElementById('entryTech');
+  const opt = sel?.options[sel.selectedIndex];
+  if (opt && opt.dataset.price) {
+    document.getElementById('entryPrice').value = opt.dataset.price;
+  }
+}
+
+function stepQty(d) {
+  const inp = document.getElementById('entryQty');
+  inp.value = Math.max(1, parseInt(inp.value || 1) + d);
+}
+
+// 技工物行の選択肢HTML生成
+function techOptions() {
+  return state.techs.length === 0
+    ? '<option value="">先に設定から技工物を追加してください</option>'
+    : state.techs.map(t => `<option value="${t.name}" data-price="${t.price}">${t.name}（¥${Number(t.price).toLocaleString()}）</option>`).join('');
+}
+
+// 技工物行を追加（選択ポップアップ付き）
+function addTechLine(selectedTech) {
+  const list = document.getElementById('techLinesList');
+
+  // 技工物が未登録なら何もしない
+  if (state.techs.length === 0) {
+    alert('先に設定から技工物を追加してください');
+    return;
+  }
+
+  // selectedTechが指定されていなければ選択ポップアップを出す
+  if (!selectedTech) {
+    showTechPicker();
+    return;
+  }
+
+  const tech = state.techs.find(t => t.name === selectedTech);
+  if (!tech) return;
+
+  const div = document.createElement('div');
+  div.className = 'tech-line';
+  div.innerHTML = `
+    <button class="tech-line-del" onclick="removeTechLine(this)">✕</button>
+    <div style="font-weight:bold;font-size:14px;margin-bottom:6px;padding-right:28px;color:var(--accent)">${tech.name}</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="tech-line-stepper">
+        <button type="button" onclick="stepTechLine(this,-1)">−</button>
+        <input type="number" value="1" min="1" max="99" oninput="updateTechLineSubtotal(this)">
+        <button type="button" onclick="stepTechLine(this,1)">＋</button>
+      </div>
+      <div style="flex:1;min-width:90px">
+        <input type="number" class="form-input" value="${tech.price}" placeholder="単価" style="font-family:monospace;height:30px;padding:4px 8px;font-size:13px" oninput="updateTechLineSubtotal(this)">
+      </div>
+      <div class="tech-line-subtotal" style="min-width:60px">¥${Number(tech.price).toLocaleString()}</div>
+    </div>
+  `;
+  div.dataset.techName = tech.name;
+  list.appendChild(div);
+}
+
+// 技工物選択ポップアップ
+function showTechPicker() {
+  // 既存のピッカーがあれば削除
+  const existing = document.getElementById('techPicker');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'techPicker';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.6);
+    display:flex;align-items:flex-end;justify-content:center
+  `;
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:20px;max-height:70vh;overflow-y:auto">
+      <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px"></div>
+      <div style="font-size:16px;font-weight:bold;margin-bottom:14px">技工物を選択</div>
+      ${state.techs.map(t => `
+        <div onclick="selectTechFromPicker('${t.name.replace(/'/g,"\\'")}');this.closest('#techPicker').remove()"
+          style="padding:14px;background:var(--surface2);border-radius:10px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border)">
+          <span style="font-size:14px;font-weight:bold">${t.name}</span>
+          <span style="color:var(--accent);font-size:13px">¥${Number(t.price).toLocaleString()}</span>
+        </div>
+      `).join('')}
+      <button onclick="document.getElementById('techPicker').remove()"
+        style="width:100%;margin-top:8px;padding:12px;background:var(--surface3);border:none;border-radius:10px;color:var(--text-dim);font-size:14px;cursor:pointer">
+        キャンセル
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function selectTechFromPicker(techName) {
+  addTechLine(techName);
+}
+
+function updateTechLinePrice(sel) {
+  const line = sel.closest('.tech-line');
+  const opt = sel.options[sel.selectedIndex];
+  const priceInp = line.querySelectorAll('input')[1];
+  if (opt && opt.dataset.price) {
+    priceInp.value = opt.dataset.price;
+    updateTechLineSubtotal(priceInp);
+  }
+}
+
+function stepTechLine(btn, d) {
+  const line = btn.closest('.tech-line');
+  const qtyInp = line.querySelectorAll('input')[0];
+  qtyInp.value = Math.max(1, parseInt(qtyInp.value || 1) + d);
+  updateTechLineSubtotal(qtyInp);
+}
+
+function updateTechLineSubtotal(inp) {
+  const line = inp.closest('.tech-line');
+  const qty = parseInt(line.querySelectorAll('input')[0].value) || 0;
+  const price = parseInt(line.querySelectorAll('input')[1].value) || 0;
+  line.querySelector('.tech-line-subtotal').textContent = '¥' + (qty * price).toLocaleString();
+}
+
+function removeTechLine(btn) {
+  const line = btn.closest('.tech-line');
+  const list = document.getElementById('techLinesList');
+  if (list.children.length <= 1) { alert('技工物は1つ以上必要です'); return; }
+  line.remove();
+}
+
+function saveEntry() {
+  const date = document.getElementById('entryDate').value;
+  const clinic = document.getElementById('entryClinic').value;
+  const patient = document.getElementById('entryPatient').value.trim();
+  const teeth = getSelectedTeethStr();
+
+  if (!date || !clinic || !patient) {
+    alert('日付・医院名・患者名を入力してください');
+    return;
+  }
+
+  const list = document.getElementById('techLinesList');
+  const lines = list.querySelectorAll('.tech-line');
+  if (lines.length === 0) { alert('技工物を1つ以上追加してください'); return; }
+
+  const now = Date.now();
+  lines.forEach((line, i) => {
+    const tech = line.dataset.techName;
+    const qty = parseInt(line.querySelectorAll('input')[0].value) || 1;
+    const price = parseInt(line.querySelectorAll('input')[1].value) || 0;
+    if (tech) {
+      state.entries.push({
+        id: (now + i).toString(),
+        date, clinic, patient, tech, qty, price, teeth
+      });
+    }
+  });
+
+  save();
+  closeModal('modalEntry');
+  renderHome();
+}
+
+function deleteEntry(id) {
+  if (!confirm('この記録を削除しますか？')) return;
+  state.entries = state.entries.filter(e => e.id !== id);
+  save();
+  renderHome();
+}
+
+// ========== EDIT ENTRY ==========
+let editSelectedTeeth = new Set();
+let editingEntryId = null;
+
+function openEditEntry(id) {
+  const e = state.entries.find(x => x.id === id);
+  if (!e) return;
+  editingEntryId = id;
+
+  document.getElementById('editEntryDate').value = e.date;
+  document.getElementById('editEntryPatient').value = e.patient;
+
+  const cs = document.getElementById('editEntryClinic');
+  cs.innerHTML = state.clinics.map(c => `<option value="${c}" ${c===e.clinic?'selected':''}>${c}</option>`).join('');
+
+  const ts = document.getElementById('editEntryTech');
+  ts.innerHTML = state.techs.map(t => `<option value="${t.name}" data-price="${t.price}" ${t.name===e.tech?'selected':''}>${t.name}</option>`).join('');
+
+  document.getElementById('editEntryQty').value = e.qty;
+  document.getElementById('editEntryPrice').value = e.price;
+
+  // 歯式の初期化
+  editSelectedTeeth = new Set(e.teeth ? e.teeth.split('・').map(t => reverseFormatTooth(t)).filter(Boolean) : []);
+  initEditToothChart();
+
+  openModal('modalEditEntry');
+}
+
+function reverseFormatTooth(label) {
+  const quadMap = {'上右':'UR','上左':'UL','下左':'LL','下右':'LR'};
+  for (const [jp, code] of Object.entries(quadMap)) {
+    if (label.startsWith(jp)) return code + label.slice(jp.length);
+  }
+  return null;
+}
+
+function initEditToothChart() {
+  const upperRight = [8,7,6,5,4,3,2,1];
+  const upperLeft  = [1,2,3,4,5,6,7,8];
+  const lowerRight = [8,7,6,5,4,3,2,1];
+  const lowerLeft  = [1,2,3,4,5,6,7,8];
+
+  document.getElementById('editUpperTeeth').innerHTML =
+    upperRight.map(n => editToothBtn(`上右${n}`, `UR${n}`)).join('') +
+    upperLeft.map(n  => editToothBtn(`上左${n}`, `UL${n}`)).join('');
+  document.getElementById('editLowerTeeth').innerHTML =
+    lowerRight.map(n => editToothBtn(`下右${n}`, `LR${n}`)).join('') +
+    lowerLeft.map(n  => editToothBtn(`下左${n}`, `LL${n}`)).join('');
+
+  updateEditSelectedTeethDisplay();
+}
+
+function editToothBtn(label, id) {
+  const sel = editSelectedTeeth.has(id) ? 'selected' : '';
+  return `<button type="button" class="tooth-btn ${sel}" id="editTooth_${id}" onclick="toggleEditTooth('${id}')">${label.slice(-1)}</button>`;
+}
+
+function toggleEditTooth(id) {
+  if (editSelectedTeeth.has(id)) {
+    editSelectedTeeth.delete(id);
+    document.getElementById('editTooth_' + id).classList.remove('selected');
+  } else {
+    editSelectedTeeth.add(id);
+    document.getElementById('editTooth_' + id).classList.add('selected');
+  }
+  updateEditSelectedTeethDisplay();
+}
+
+function updateEditSelectedTeethDisplay() {
+  const el = document.getElementById('editSelectedTeethDisplay');
+  if (editSelectedTeeth.size === 0) {
+    el.textContent = '歯式未選択';
+    el.style.color = 'var(--text-dim)';
+  } else {
+    const sorted = sortTeeth([...editSelectedTeeth]);
+    el.textContent = '選択中: ' + sorted.map(formatTooth).join('・');
+    el.style.color = 'var(--accent)';
+  }
+}
+
+function updateEditPrice() {
+  const sel = document.getElementById('editEntryTech');
+  const opt = sel.options[sel.selectedIndex];
+  if (opt && opt.dataset.price) document.getElementById('editEntryPrice').value = opt.dataset.price;
+}
+
+function stepEditQty(d) {
+  const inp = document.getElementById('editEntryQty');
+  inp.value = Math.max(1, parseInt(inp.value || 1) + d);
+}
+
+function saveEditEntry() {
+  const e = state.entries.find(x => x.id === editingEntryId);
+  if (!e) return;
+  e.date = document.getElementById('editEntryDate').value;
+  e.clinic = document.getElementById('editEntryClinic').value;
+  e.patient = document.getElementById('editEntryPatient').value.trim();
+  e.tech = document.getElementById('editEntryTech').value;
+  e.qty = parseInt(document.getElementById('editEntryQty').value) || 1;
+  e.price = parseInt(document.getElementById('editEntryPrice').value) || 0;
+  e.teeth = editSelectedTeeth.size > 0 ? sortTeeth([...editSelectedTeeth]).map(formatTooth).join('・') : '';
+  save();
+  closeModal('modalEditEntry');
+  renderHome();
+}
+
+// ========== CONTINUOUS INPUT MODE ==========
+let continuousMode = false;
+let continuousClinic = '';
+let continuousDate = '';
+
+function toggleContinuousMode() {
+  continuousMode = !continuousMode;
+  if (continuousMode) {
+    continuousClinic = state.clinics[0] || '';
+    continuousDate = new Date().toISOString().slice(0,10);
+    showContinuousInput();
+  }
+}
+
+function showContinuousInput() {
+  const existing = document.getElementById('continuousPicker');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'continuousPicker';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;justify-content:center';
+
+  const clinicOptions = state.clinics.map(c =>
+    `<option value="${c}" ${c===continuousClinic?'selected':''}>${c}</option>`).join('');
+
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:20px;max-height:90vh;overflow-y:auto">
+      <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 12px"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:bold">⚡ 連続入力モード</div>
+        <button onclick="document.getElementById('continuousPicker').remove();continuousMode=false"
+          style="background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">日付</label>
+        <input type="date" class="form-input" id="contDate" value="${continuousDate}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">医院名</label>
+        <select class="form-select" id="contClinic">${clinicOptions}</select>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px">
+        <div style="font-size:13px;font-weight:bold;margin-bottom:10px;color:var(--accent)">患者を追加</div>
+        <div class="form-group">
+          <label class="form-label">患者名</label>
+          <input type="text" class="form-input" id="contPatient" placeholder="患者名を入力">
+        </div>
+        <div class="form-group">
+          <label class="form-label">歯式 <span style="font-size:11px;color:var(--text-dim);font-weight:normal">（タップで選択・複数可）</span></label>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px">
+            <div style="display:grid;grid-template-columns:repeat(16,1fr);gap:2px;margin-bottom:8px" id="contUpperTeeth"></div>
+            <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+            <div style="display:grid;grid-template-columns:repeat(16,1fr);gap:2px;margin-top:8px" id="contLowerTeeth"></div>
+            <div id="contSelectedTeethDisplay" style="margin-top:8px;font-size:12px;color:var(--text-dim);text-align:center">歯式未選択</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">技工物</label>
+          <div id="contTechLinesList"></div>
+          <button class="btn btn-secondary" style="width:100%;margin-top:8px;font-size:13px" onclick="addContTechLine()">＋ 技工物を追加</button>
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="saveContEntry()">この患者を追加して次へ</button>
+      </div>
+      <div id="contSavedList" style="margin-top:12px"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(() => initContToothChart(), 50);
+  addContTechLine();
+}
+
+function addContTechLine() {
+  if (state.techs.length === 0) { alert('先に設定から技工物を追加してください'); return; }
+  showContTechPicker();
+}
+
+let contSelectedTeeth = new Set();
+
+function initContToothChart() {
+  contSelectedTeeth = new Set();
+  const upper = document.getElementById('contUpperTeeth');
+  const lower = document.getElementById('contLowerTeeth');
+  if (!upper || !lower) return;
+  const upperRight = [8,7,6,5,4,3,2,1];
+  const upperLeft  = [1,2,3,4,5,6,7,8];
+  const lowerRight = [8,7,6,5,4,3,2,1];
+  const lowerLeft  = [1,2,3,4,5,6,7,8];
+  upper.innerHTML =
+    upperRight.map(n => contToothBtn(`上右${n}`, `UR${n}`)).join('') +
+    upperLeft.map(n  => contToothBtn(`上左${n}`, `UL${n}`)).join('');
+  lower.innerHTML =
+    lowerRight.map(n => contToothBtn(`下右${n}`, `LR${n}`)).join('') +
+    lowerLeft.map(n  => contToothBtn(`下左${n}`, `LL${n}`)).join('');
+  updateContSelectedTeethDisplay();
+}
+
+function contToothBtn(label, id) {
+  return `<button type="button" class="tooth-btn" id="contTooth_${id}" onclick="toggleContTooth('${id}')">${label.slice(-1)}</button>`;
+}
+
+function toggleContTooth(id) {
+  if (contSelectedTeeth.has(id)) {
+    contSelectedTeeth.delete(id);
+    document.getElementById('contTooth_' + id).classList.remove('selected');
+  } else {
+    contSelectedTeeth.add(id);
+    document.getElementById('contTooth_' + id).classList.add('selected');
+  }
+  updateContSelectedTeethDisplay();
+}
+
+function updateContSelectedTeethDisplay() {
+  const el = document.getElementById('contSelectedTeethDisplay');
+  if (!el) return;
+  if (contSelectedTeeth.size === 0) {
+    el.textContent = '歯式未選択';
+    el.style.color = 'var(--text-dim)';
+  } else {
+    const sorted = sortTeeth([...contSelectedTeeth]);
+    el.textContent = '選択中: ' + sorted.map(formatTooth).join('・');
+    el.style.color = 'var(--accent)';
+  }
+}
+
+function showContTechPicker() {
+  const existing = document.getElementById('contTechPicker');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'contTechPicker';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.7);display:flex;align-items:flex-end;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:20px;max-height:60vh;overflow-y:auto">
+      <div style="font-size:15px;font-weight:bold;margin-bottom:14px">技工物を選択</div>
+      ${state.techs.map(t => `
+        <div onclick="selectContTech('${t.name.replace(/'/g,"\\'")}');document.getElementById('contTechPicker').remove()"
+          style="padding:14px;background:var(--surface2);border-radius:10px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;border:1px solid var(--border)">
+          <span style="font-size:14px;font-weight:bold">${t.name}</span>
+          <span style="color:var(--accent);font-size:13px">¥${Number(t.price).toLocaleString()}</span>
+        </div>`).join('')}
+      <button onclick="document.getElementById('contTechPicker').remove()"
+        style="width:100%;margin-top:8px;padding:12px;background:var(--surface3);border:none;border-radius:10px;color:var(--text-dim);font-size:14px;cursor:pointer">キャンセル</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function selectContTech(techName) {
+  const tech = state.techs.find(t => t.name === techName);
+  if (!tech) return;
+  const list = document.getElementById('contTechLinesList');
+  const div = document.createElement('div');
+  div.className = 'tech-line';
+  div.dataset.techName = tech.name;
+  div.innerHTML = `
+    <button class="tech-line-del" onclick="this.closest('.tech-line').remove()">✕</button>
+    <div style="font-weight:bold;font-size:14px;margin-bottom:6px;padding-right:28px;color:var(--accent)">${tech.name}</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="tech-line-stepper">
+        <button type="button" onclick="stepTechLine(this,-1)">−</button>
+        <input type="number" value="1" min="1" max="99" oninput="updateTechLineSubtotal(this)">
+        <button type="button" onclick="stepTechLine(this,1)">＋</button>
+      </div>
+      <div style="flex:1;min-width:90px">
+        <input type="number" class="form-input" value="${tech.price}" style="font-family:monospace;height:30px;padding:4px 8px;font-size:13px" oninput="updateTechLineSubtotal(this)">
+      </div>
+      <div class="tech-line-subtotal">¥${Number(tech.price).toLocaleString()}</div>
+    </div>
+  `;
+  list.appendChild(div);
+}
+
+function saveContEntry() {
+  const date = document.getElementById('contDate').value;
+  const clinic = document.getElementById('contClinic').value;
+  const patient = document.getElementById('contPatient').value.trim();
+  if (!patient) { alert('患者名を入力してください'); return; }
+
+  const lines = document.getElementById('contTechLinesList').querySelectorAll('.tech-line');
+  if (lines.length === 0) { alert('技工物を追加してください'); return; }
+
+  const teeth = contSelectedTeeth.size > 0 ? sortTeeth([...contSelectedTeeth]).map(formatTooth).join('・') : '';
+
+  const now = Date.now();
+  lines.forEach((line, i) => {
+    const tech = line.dataset.techName;
+    const qty = parseInt(line.querySelectorAll('input')[0].value) || 1;
+    const price = parseInt(line.querySelectorAll('input')[1].value) || 0;
+    if (tech) state.entries.push({ id: (now + i).toString(), date, clinic, patient, tech, qty, price, teeth });
+  });
+  save();
+  renderHome();
+
+  // 保存済みリストに追加
+  const total = [...lines].reduce((s, line) => {
+    return s + (parseInt(line.querySelectorAll('input')[0].value)||1) * (parseInt(line.querySelectorAll('input')[1].value)||0);
+  }, 0);
+  const savedList = document.getElementById('contSavedList');
+  const item = document.createElement('div');
+  item.style.cssText = 'padding:8px 12px;background:var(--surface2);border-radius:8px;margin-bottom:6px;font-size:13px;color:var(--success)';
+  item.textContent = `✅ ${patient}${teeth ? ' [' + teeth + ']' : ''} — ¥${total.toLocaleString()}`;
+  savedList.prepend(item);
+
+  // 患者名・技工物・歯式をリセット
+  document.getElementById('contPatient').value = '';
+  document.getElementById('contTechLinesList').innerHTML = '';
+  contSelectedTeeth = new Set();
+  initContToothChart();
+}
+
+function deleteEntries(ids) {
+  if (!confirm('この患者の記録をすべて削除しますか？')) return;
+  state.entries = state.entries.filter(e => !ids.includes(e.id));
+  save();
+  renderHome();
+}
+
+function showPatientDetail(encodedPatient, date, clinic) {
+  const patient = decodeURIComponent(encodedPatient);
+  const items = state.entries.filter(e => e.patient === patient && e.date === date && e.clinic === clinic);
+  const total = items.reduce((s, e) => s + e.price * e.qty, 0);
+
+  const existing = document.getElementById('patientDetailPicker');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'patientDetailPicker';
+  overlay.style.cssText = `position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;justify-content:center`;
+
+  const techRows = items.map(e => `
+    <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:14px;font-weight:bold">${e.tech}</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:2px">${e.qty}個 × ¥${Number(e.price).toLocaleString()}</div>
+          ${e.teeth ? `<div style="font-size:11px;color:var(--accent3);margin-top:3px">🦷 ${e.teeth}</div>` : ''}
+        </div>
+        <div style="font-size:15px;font-family:monospace;color:var(--accent2)">¥${(e.price * e.qty).toLocaleString()}</div>
+      </div>
+    </div>
+  `).join('');
+
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:20px;max-height:80vh;overflow-y:auto">
+      <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px"></div>
+      <div style="font-size:16px;font-weight:bold;margin-bottom:4px">🦷 ${patient}</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:16px">${clinic} · ${date.slice(5).replace('-','/')}</div>
+      ${techRows}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:14px;margin-top:4px">
+        <span style="font-size:13px;font-weight:bold;color:var(--text-dim)">合計</span>
+        <span style="font-size:18px;font-family:monospace;font-weight:bold;color:var(--accent)">¥${total.toLocaleString()}</span>
+      </div>
+      <button onclick="document.getElementById('patientDetailPicker').remove()"
+        style="width:100%;margin-top:16px;padding:12px;background:var(--surface3);border:none;border-radius:10px;color:var(--text-dim);font-size:14px;cursor:pointer">
+        閉じる
+      </button>
+    </div>
+  `;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+// ========== SETTINGS ==========
+function renderSettings() {
+  document.getElementById('targetSalesDisplay').textContent =
+    state.targetSales > 0 ? '¥' + state.targetSales.toLocaleString() : '未設定';
+  document.getElementById('salaryRateDisplay').textContent =
+    state.salaryRate > 0 ? state.salaryRate + '%' : '未設定';
+  document.getElementById('salaryDisplay').textContent =
+    state.salary > 0 ? '¥' + state.salary.toLocaleString() : '¥0';
+
+  const cl = document.getElementById('clinicList');
+  cl.innerHTML = state.clinics.length === 0
+    ? '<span style="color:var(--text-dim);font-size:12px">まだ医院がありません</span>'
+    : state.clinics.map((c, i) => {
+        const col = CLINIC_COLORS[i % CLINIC_COLORS.length];
+        return `<span class="clinic-badge">
+          <span style="width:8px;height:8px;border-radius:50%;background:${col};display:inline-block"></span>
+          ${c}
+          <button onclick="removeClinic(${i})">×</button>
+        </span>`;
+      }).join('');
+
+  const tl = document.getElementById('techList');
+  tl.innerHTML = state.techs.length === 0
+    ? '<div style="color:var(--text-dim);font-size:12px;padding:8px 0">まだ技工物がありません</div>'
+    : state.techs.map((t, i) => `
+      <div class="tech-item">
+        <div style="display:flex;flex-direction:column;gap:2px;margin-right:8px">
+          <button onclick="moveTech(${i},-1)" style="background:var(--surface3);border:none;color:var(--text);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:11px;${i===0?'opacity:0.3;pointer-events:none':''}" ${i===0?'disabled':''}>▲</button>
+          <button onclick="moveTech(${i},1)" style="background:var(--surface3);border:none;color:var(--text);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:11px;${i===state.techs.length-1?'opacity:0.3;pointer-events:none':''}" ${i===state.techs.length-1?'disabled':''}>▼</button>
+        </div>
+        <div class="tech-name">${t.name}</div>
+        <div class="tech-price">¥${Number(t.price).toLocaleString()}</div>
+        <button class="btn btn-danger btn-sm" onclick="removeTech(${i})" style="margin-left:8px">削除</button>
+      </div>`).join('');
+}
+
+function addClinic() {
+  const inp = document.getElementById('newClinicInput');
+  const name = inp.value.trim();
+  if (!name) return;
+  if (state.clinics.includes(name)) { alert('すでに登録済みです'); return; }
+  state.clinics.push(name);
+  inp.value = '';
+  save();
+  renderSettings();
+}
+
+function removeClinic(i) {
+  if (!confirm(`「${state.clinics[i]}」を削除しますか？`)) return;
+  state.clinics.splice(i, 1);
+  save();
+  renderSettings();
+}
+
+function openAddTechModal() {
+  document.getElementById('newTechName').value = '';
+  document.getElementById('newTechPrice').value = '';
+  openModal('modalAddTech');
+}
+
+function saveTech() {
+  const name = document.getElementById('newTechName').value.trim();
+  const price = parseInt(document.getElementById('newTechPrice').value) || 0;
+  if (!name) { alert('技工物名を入力してください'); return; }
+  state.techs.push({ id: Date.now().toString(), name, price });
+  save();
+  closeModal('modalAddTech');
+  renderSettings();
+}
+
+function removeTech(i) {
+  if (!confirm(`「${state.techs[i].name}」を削除しますか？`)) return;
+  state.techs.splice(i, 1);
+  save();
+  renderSettings();
+}
+
+function moveTech(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= state.techs.length) return;
+  const tmp = state.techs[i];
+  state.techs[i] = state.techs[j];
+  state.techs[j] = tmp;
+  save();
+  renderSettings();
+}
+
+function openSalaryModal() {
+  document.getElementById('targetSalesInput').value = state.targetSales || '';
+  document.getElementById('salaryRateInput').value = state.salaryRate || '';
+  updateSalaryPreview();
+  openModal('modalSalary');
+}
+
+function updateSalaryPreview() {
+  const sales = parseInt(document.getElementById('targetSalesInput').value) || 0;
+  const rate = parseInt(document.getElementById('salaryRateInput').value) || 0;
+  const preview = Math.round(sales * rate / 100);
+  document.getElementById('salaryPreview').textContent = '¥' + preview.toLocaleString();
+}
+
+function saveSalary() {
+  state.targetSales = parseInt(document.getElementById('targetSalesInput').value) || 0;
+  state.salaryRate = parseInt(document.getElementById('salaryRateInput').value) || 0;
+  state.salary = Math.round(state.targetSales * state.salaryRate / 100);
+  save();
+  closeModal('modalSalary');
+  renderSettings();
+  renderHome();
+}
+
+function clearAllData() {
+  if (!confirm('すべてのデータを削除しますか？この操作は元に戻せません。')) return;
+  state.entries = [];
+  save();
+  renderHome();
+}
+
+// ========== BACKUP & RESTORE ==========
+function exportBackup() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    state: state
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `gikobutu_backup_${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  document.getElementById('backupStatus').textContent = '✅ バックアップを保存しました！';
+  setTimeout(() => { document.getElementById('backupStatus').textContent = ''; }, 3000);
+}
+
+function importBackup(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.state || !data.state.entries) throw new Error('invalid');
+      if (!confirm(`バックアップから復元しますか？\n現在のデータは上書きされます。\n\n記録件数: ${data.state.entries.length}件\n保存日: ${data.exportedAt?.slice(0,10) || '不明'}`)) return;
+      state = { ...state, ...data.state };
+      save();
+      renderHome();
+      renderSettings();
+      document.getElementById('backupStatus').textContent = '✅ 復元しました！';
+      setTimeout(() => { document.getElementById('backupStatus').textContent = ''; }, 3000);
+    } catch {
+      alert('ファイルの読み込みに失敗しました。正しいバックアップファイルを選んでください。');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// ========== CHARTS ==========
+let charts = {};
+
+function renderCharts() {
+  renderAchieveChart();
+  renderDailyChart();
+  renderClinicChart();
+  renderClinicReport();
+  renderTechChart();
+  renderYearlySummary();
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+function getLast6Months() {
+  const months = [];
+  let y = state.currentYear, m = state.currentMonth;
+  for (let i = 5; i >= 0; i--) {
+    let mm = m - i;
+    let yy = y;
+    while (mm < 1) { mm += 12; yy--; }
+    months.push({ year: yy, month: mm, key: monthKey(yy, mm), label: `${mm}月` });
+  }
+  return months;
+}
+
+function renderAchieveChart() {
+  destroyChart('achieve');
+  const months = getLast6Months();
+  const data = months.map(m => {
+    const entries = state.entries.filter(e => e.date && e.date.startsWith(m.key));
+    const total = entries.reduce((s, e) => s + e.price * e.qty, 0);
+    return state.salary > 0 ? Math.round(total / state.salary * 100) : 0;
+  });
+  const ctx = document.getElementById('chartAchieve').getContext('2d');
+  charts.achieve = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: months.map(m => m.label),
+      datasets: [{
+        label: '達成率(%)',
+        data,
+        borderColor: '#58d6c8',
+        backgroundColor: 'rgba(88,214,200,0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        pointBackgroundColor: '#58d6c8',
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#7d8590' }, grid: { color: '#21262d' } },
+        y: { ticks: { color: '#7d8590', callback: v => v + '%' }, grid: { color: '#21262d' }, min: 0 }
+      }
+    }
+  });
+}
+
+function renderClinicChart() {
+  destroyChart('clinic');
+  const months = getLast6Months();
+  const clinics = state.clinics.slice(0, 5);
+  const datasets = clinics.map((c, ci) => ({
+    label: c,
+    data: months.map(m => {
+      const entries = state.entries.filter(e => e.date && e.date.startsWith(m.key) && e.clinic === c);
+      return entries.reduce((s, e) => s + e.price * e.qty, 0);
+    }),
+    backgroundColor: CLINIC_COLORS[ci % CLINIC_COLORS.length],
+    borderRadius: 4
+  }));
+  const ctx = document.getElementById('chartClinic').getContext('2d');
+  charts.clinic = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: months.map(m => m.label), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#7d8590', font: { size: 10 } } } },
+      scales: {
+        x: { stacked: true, ticks: { color: '#7d8590' }, grid: { color: '#21262d' } },
+        y: { stacked: true, ticks: { color: '#7d8590', callback: v => '¥' + v.toLocaleString() }, grid: { color: '#21262d' } }
+      }
+    }
+  });
+}
+
+function renderTechChart() {
+  destroyChart('tech');
+  const entries = currentEntries();
+  const techCount = {};
+  entries.forEach(e => { techCount[e.tech] = (techCount[e.tech] || 0) + e.qty; });
+  const sorted = Object.entries(techCount).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  const ctx = document.getElementById('chartTech').getContext('2d');
+  charts.tech = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(([k]) => k),
+      datasets: [{
+        label: '製作数',
+        data: sorted.map(([, v]) => v),
+        backgroundColor: sorted.map((_, i) => CLINIC_COLORS[i % CLINIC_COLORS.length]),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#7d8590' }, grid: { color: '#21262d' } },
+        y: { ticks: { color: '#e6edf3', font: { size: 11 } }, grid: { color: '#21262d' } }
+      }
+    }
+  });
+}
+
+function renderDailyChart() {
+  destroyChart('daily');
+  const entries = currentEntries();
+  const dailyMap = {};
+  entries.forEach(e => {
+    const day = parseInt(e.date.slice(8));
+    dailyMap[day] = (dailyMap[day] || 0) + e.price * e.qty;
+  });
+  const daysInMonth = new Date(state.currentYear, state.currentMonth, 0).getDate();
+  const labels = Array.from({length: daysInMonth}, (_, i) => i + 1);
+  const data = labels.map(d => dailyMap[d] || 0);
+  const ctx = document.getElementById('chartDaily').getContext('2d');
+  charts.daily = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels.map(d => d + '日'),
+      datasets: [{
+        label: '売上',
+        data,
+        backgroundColor: '#58d6c8',
+        borderRadius: 3
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#7d8590', font: { size: 10 }, maxRotation: 0 }, grid: { color: '#21262d' } },
+        y: { ticks: { color: '#7d8590', callback: v => '¥' + (v/1000).toFixed(0) + 'k' }, grid: { color: '#21262d' } }
+      }
+    }
+  });
+}
+
+function renderClinicReport() {
+  const entries = currentEntries();
+  const report = {};
+  state.clinics.forEach(c => { report[c] = { total: 0, count: 0, patients: new Set() }; });
+  entries.forEach(e => {
+    if (!report[e.clinic]) report[e.clinic] = { total: 0, count: 0, patients: new Set() };
+    report[e.clinic].total += e.price * e.qty;
+    report[e.clinic].count++;
+    report[e.clinic].patients.add(e.patient);
+  });
+  const el = document.getElementById('clinicReport');
+  const items = Object.entries(report).filter(([, v]) => v.total > 0).sort((a, b) => b[1].total - a[1].total);
+  if (items.length === 0) { el.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:8px 0">データがありません</div>'; return; }
+  el.innerHTML = items.map(([clinic, v], i) => {
+    const color = CLINIC_COLORS[state.clinics.indexOf(clinic) % CLINIC_COLORS.length] || CLINIC_COLORS[i];
+    return `<div class="card" style="margin-bottom:8px;border-left:3px solid ${color}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-weight:bold;font-size:14px">${clinic}</div>
+        <div style="font-family:monospace;font-size:16px;color:var(--accent2)">¥${v.total.toLocaleString()}</div>
+      </div>
+      <div style="display:flex;gap:16px;font-size:12px;color:var(--text-dim)">
+        <span>患者数 <strong style="color:var(--text)">${v.patients.size}人</strong></span>
+        <span>件数 <strong style="color:var(--text)">${v.count}件</strong></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderYearlySummary() {
+  const year = state.currentYear;
+  const el = document.getElementById('yearlySummary');
+  const months = Array.from({length: 12}, (_, i) => i + 1);
+  const monthData = months.map(m => {
+    const key = monthKey(year, m);
+    const entries = state.entries.filter(e => e.date && e.date.startsWith(key));
+    const total = entries.reduce((s, e) => s + e.price * e.qty, 0);
+    return { month: m, total };
+  });
+  const yearTotal = monthData.reduce((s, d) => s + d.total, 0);
+  const bestMonth = monthData.reduce((a, b) => b.total > a.total ? b : a, monthData[0]);
+
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px">${year}年 年間売上</div>
+          <div style="font-family:monospace;font-size:22px;color:var(--accent)">¥${yearTotal.toLocaleString()}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px">最高月</div>
+          <div style="font-size:14px;font-weight:bold">${bestMonth.total > 0 ? bestMonth.month + '月' : '-'}</div>
+          <div style="font-size:12px;color:var(--accent2)">${bestMonth.total > 0 ? '¥' + bestMonth.total.toLocaleString() : ''}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        ${monthData.map(d => {
+          const isCurrent = d.month === state.currentMonth;
+          return `<div style="background:var(--surface2);border-radius:6px;padding:6px;text-align:center;${isCurrent?'border:1px solid var(--accent)':'border:1px solid var(--border)'}">
+            <div style="font-size:10px;color:var(--text-dim)">${d.month}月</div>
+            <div style="font-size:11px;font-family:monospace;color:${d.total>0?'var(--accent2)':'var(--text-dim)'};margin-top:2px">${d.total>0?'¥'+(d.total/10000).toFixed(1)+'万':'-'}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ========== MODAL UTILS ==========
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) closeModal(m.id); });
+});
+
+// ========== RENDER ALL ==========
+function renderAll() { renderHome(); }
+
+// ========== START ==========
+init();
+</script>
+</body>
+</html>
